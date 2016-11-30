@@ -5,18 +5,10 @@
 %% API Function Definitions
 %% ~~~~~~~~~~~~~~~~~~~~~~~~
 
-% server should spin up a process for every connection for every user
-% and have a db that maps messages to processes
-
-
-
 start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
 stop() -> ok.
-
-
-
 
 %% ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 %% gen_server Function Definitions
@@ -69,20 +61,10 @@ insert_key_internal(Node, Key, DB) ->
 %% ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 get_nodes() ->
-              % DB here is going to store the Server_name (from chat.erl)
-        gen_server:call(
-                ?MODULE,
-                get_nodes).
+        gen_server:call(?MODULE, get_nodes).
 
 get_key(Name) ->
-	gen_server:call(
-		?MODULE,
-		{get_key, Name}).
+	gen_server:call(?MODULE, {get_key, Name}).
 
 insert({Name, Key}) ->
-	gen_server:cast(
-		?MODULE,
-		{insert_key, Name, Key}).
-
-
-
+	gen_server:cast(?MODULE, {insert_key, Name, Key}).
