@@ -11,7 +11,7 @@
 
 
 start_link() ->
-    gen_server:start_link({global, ?MODULE}, ?MODULE, [], []).
+    gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
 stop() -> ok.
 
@@ -23,7 +23,7 @@ stop() -> ok.
 %% ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 init(Args) ->
-	register(?MODULE, self()),
+	%register(?MODULE, self()),
     {ok, Args}.
 
 handle_call(get_nodes, _From, State) ->
@@ -68,21 +68,21 @@ insert_key_internal(Node, Key, DB) ->
 %% External Function Definitions
 %% ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-get_nodes(DB) ->
+get_nodes() ->
               % DB here is going to store the Server_name (from chat.erl)
         gen_server:call(
-                {?MODULE, DB},
-                {get_nodes}).
+                ?MODULE,
+                get_nodes).
 
-get_key(DB, Name) ->
+get_key(Name) ->
 	gen_server:call(
-		{?MODULE, DB},
+		?MODULE,
 		{get_key, Name}).
 
-insert(DB, {Name, Key}) ->
+insert({Name, Key}) ->
 	gen_server:cast(
-		{?MODULE, DB},
-		{insert, Name, Key}).
+		?MODULE,
+		{insert_key, Name, Key}).
 
 
 
