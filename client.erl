@@ -15,9 +15,9 @@ setup() ->
     spawn(?MODULE, listener, [PrivKey]),
     Message   = fun(Node, Process, Term) -> 
         Bin = term_to_binary(Term),
-        OtherPub = cached_key_lookup(Node),
-        Msg = encrypt_public(encrypt_private(Bin, PrivKey), OtherPub),
-        {seam_listener, Node} ! {message, node(), Process, Msg} 
+        Foreign = cached_key_lookup(Node),
+        Envelope = broker_crypto:build_envelope(Foreign, Bin),
+        {seam_listener, Node} ! {message, Process, Envelope} 
         end,
     Upload = fun() -> 
         Bin = term_to_binary(PubKey),
@@ -36,14 +36,14 @@ listener(PrivKey) ->
 	listener_loop(PrivKey).
 
 listener_loop(PrivKey) ->
-	Decrypt = fun(Bin, Foreign) ->
-        B = decrypt_private(decrypt_public(Bin, Foreign), PrivKey),
-        binary_to_term(B)
+	Decrypt = fun(Msg) ->
+        Bin = broker_crypto:extract_message(Msg, PrivKey),
+        binary_to_term(Bin)
         end,
 	% recieve a message
 	receive
-		{message, Origin, Recipient, Contents} ->
-			Recipient ! Decrypt(Contents, cached_key_lookup(Origin));
+		{message, Recipient, Contents} ->
+			Recipient ! Decrypt(Contents);
 		_ ->
 			io:format("Bad message recieved!")
 	end,
