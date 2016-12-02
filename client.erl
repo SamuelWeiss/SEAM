@@ -1,14 +1,16 @@
 -module(client).
 -import(public_key, [encrypt_private/2, encrypt_public/2,
                      decrypt_private/2, decrypt_public/2]).
--export([setup/0, listener/1]).
+-export([setup/0, setup/2, listener/1]).
 
-setup() ->
+setup()-> setup("id_rsa.pub", "id_rsa").
+
+setup(PubKeyPath, PrivKeyPath) ->
     ok = application:start(asn1),
     ok = application:start(crypto),
     ok = application:start(public_key),
-    {ok, PubBin} = file:read_file("id_rsa.pub"),
-    {ok, PrivBin} = file:read_file("id_rsa"),
+    {ok, PubBin} = file:read_file(PubKeyPath),
+    {ok, PrivBin} = file:read_file(PrivKeyPath),
     [PubKey] = public_key:ssh_decode(PubBin, public_key),
     [PrivKey] = public_key:pem_decode(PrivBin),
     ServerKey = rsa_server:get_server_key(),
