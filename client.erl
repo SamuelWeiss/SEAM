@@ -1,5 +1,3 @@
-%%% Date: 12/2/16
-
 -module(client).
 -import(public_key, [encrypt_private/2, encrypt_public/2,
                      decrypt_private/2, decrypt_public/2]).
@@ -17,7 +15,7 @@ setup() ->
     spawn(?MODULE, listener, [PrivKey]),
     Message   = fun(Node, Process, Term) -> 
         Bin = term_to_binary(Term),
-        OtherPub = rsa_server:get_key(Node), % cache that
+        OtherPub = cached_key_lookup(Node),
         Msg = encrypt_public(encrypt_private(Bin, PrivKey), OtherPub),
         {seam_listener, Node} ! {message, node(), Process, Msg} 
         end,
@@ -28,6 +26,7 @@ setup() ->
     Get_Nodes = fun() ->
         rsa_server:get_nodes()
         end,
+    % tuple of client functions
     {Message, Upload, Get_Nodes}.
 
 
@@ -44,8 +43,17 @@ listener_loop(PrivKey) ->
 	% recieve a message
 	receive
 		{message, Origin, Recipient, Contents} ->
-			Recipient ! Decrypt(Contents, db:get_key(Origin));
+			Recipient ! Decrypt(Contents, cached_key_lookup(Origin));
 		_ ->
 			io:format("Bad message recieved!")
 	end,
 	listener_loop(PrivKey).
+
+cached_key_lookup(Node) ->
+    case db:get_key(Node) of 
+        [] ->
+	        Key = rsa_server:get_key(Node),
+            db:insert({Node, Key}),
+            Key;
+        Key -> Key
+    end.
