@@ -71,7 +71,7 @@ get_key_internal(Node, [ {_Cur_node, _Cur_key} | Remainder_DB ]) ->
     get_key_internal(Node, Remainder_DB);
 
 get_key_internal(_Node, []) ->
-    not_found.
+    [].
 
 insert_key_internal(Node, Key, DB) -> 
     [{Node, Key}|DB].

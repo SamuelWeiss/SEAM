@@ -22,6 +22,13 @@ listener_loop() ->
 decrypt(Contents, Key) ->
 	ok.
 
+cached_key_lookup(Node) 
+	when db:get_key(Node) == [] ->
+	rsa_server:get_key(Node);
+
+cached_key_lookup(Node) ->
+	db:get_key(Node).
+
 % encrypt(Message, Key) ->
 % 	ok.
 
