@@ -1,8 +1,10 @@
 -module(rsa_server).
 -export([init/1, handle_call/3, handle_cast/2, get_encrypt_send/3,
          code_change/3, terminate/2, handle_info/2]).
--export([register/1, get_key/1, get_nodes/0, get_server_key/0]).
+-export([register/1, get_key/2, get_nodes/1, get_server_key/0]).
 -export([start/0, stop/0]).
+
+-define(SERVER, ?MODULE).
 
 -behaviour(gen_server).
 
@@ -11,29 +13,33 @@
 %% ~~~~~~~~~~~~~~~~~~~~~~~~
 
 start() ->
-    gen_server:start({global, ?MODULE}, ?MODULE, [], []).
+    gen_server:start({global, ?SERVER}, ?MODULE, [], []).
 
 stop() -> 
     application:stop(asn1),
     application:stop(crypto),
     application:stop(public_key),
-    gen_server:stop({global, ?MODULE}).
+    gen_server:cast({global, ?SERVER}, stop).
 
 %% ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 %% External Function Definitions
 %% ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-register(Data) ->
-    gen_server:cast({global, ?MODULE}, {register, node(), Data}).
+register(PubKey) ->
+    PubBin = term_to_binary(PubKey),
+    Envelope = broker_crypto:build_envelope(get_server_key(), PubBin),
+    gen_server:cast({global, ?SERVER}, {register, node(), Envelope}).
 
-get_key(Node) ->
-    gen_server:call({global, ?MODULE}, {get_key, Node}).
+get_key(Node, PrivKey) ->
+    Envelope = gen_server:call({global, ?SERVER}, {get_key, Node}),
+    binary_to_term(broker_crypto:extract_message(Envelope, PrivKey)).
 
 get_server_key() ->
-    gen_server:call({global, ?MODULE}, get_server_key).
+    gen_server:call({global, ?SERVER}, get_server_key).
 
-get_nodes() ->
-    gen_server:call({global, ?MODULE}, get_nodes).
+get_nodes(PrivKey) ->
+    Envelope = gen_server:call({global, ?SERVER}, get_nodes),
+    binary_to_term(broker_crypto:extract_message(Envelope, PrivKey)).
 
 %% ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 %% gen_server Function Definitions
@@ -48,14 +54,16 @@ init(_) ->
     [{PubKey, _}] = public_key:ssh_decode(PubBin, public_key),
     [PrivKeyEntry] = public_key:pem_decode(PrivBin),
     PrivKey = public_key:pem_entry_decode(PrivKeyEntry),
-    ok = db:start_link(),
+    {ok, _} = db:start_link(),
     {ok, {PubKey, PrivKey}}.
 
 handle_cast({register, Node, Envelope}, {PubKey, PrivKey}) -> 
     KeyBin = broker_crypto:extract_message(Envelope, PrivKey),
     Key = binary_to_term(KeyBin),
     db:insert({Node, Key}),
-    {noreply, {PubKey, PrivKey}}.
+    {noreply, {PubKey, PrivKey}};
+handle_cast(stop, State) ->
+    {stop, normal, State}.
 
 handle_call({get_key, Node}, From, State) ->
     Args = [get_key, Node, From],
@@ -87,8 +95,9 @@ get_encrypt_send(Call, Name, To) ->
         get_key -> db:get_key(Name);
         get_nodes -> db:get_nodes()
     end,
-    Message = term_to_binary(gen_server:call(Result)),
-    ClientKey = db:get_key(node(To)),
+    Message = term_to_binary(Result),
+    {ClientPid, _} = To,
+    ClientKey = db:get_key(node(ClientPid)),
     Envelope = broker_crypto:build_envelope(ClientKey, Message),
     gen_server:reply(To, Envelope).
 
