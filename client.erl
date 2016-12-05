@@ -15,21 +15,18 @@ setup(PubKeyPath, PrivKeyPath) ->
     [PrivKey] = public_key:pem_decode(PrivBin),
     ServerKey = rsa_server:get_server_key(),
     spawn(?MODULE, listener, [PrivKey]),
+    % TODO: ping a node connected to rsa_server
+    rsa_server:register(PubKey),
     Message   = fun(Node, Process, Term) -> 
         Bin = term_to_binary(Term),
         Foreign = cached_key_lookup(Node),
         Envelope = broker_crypto:build_envelope(Foreign, Bin),
         {seam_listener, Node} ! {message, Process, Envelope} 
         end,
-    Upload = fun() -> 
-        Bin = term_to_binary(PubKey),
-        rsa_server:register(encrypt_public(Bin, ServerKey))
-        end,
     Get_Nodes = fun() ->
         rsa_server:get_nodes()
         end,
-    % tuple of client functions
-    {Message, Upload, Get_Nodes}.
+    {Message, Get_Nodes}.
 
 
 listener(PrivKey) ->
