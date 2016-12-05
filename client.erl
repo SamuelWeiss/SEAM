@@ -1,17 +1,16 @@
-%%% Assumption: client is aware of the rsa_server in some way. 
+%%% client.erl: client module for secure messaging between Erlang nodes.
+%%% Assumes that client is aware of the rsa_server in some way. 
 
 -module(client).
 -import(public_key, [encrypt_private/2, encrypt_public/2,
                      decrypt_private/2, decrypt_public/2]).
--export([setup/0, setup/2, listener/1]).
+-export([setup/0, setup/2, message/3, get_nodes/0, listener/1]).
 
 
 %% setup: takes in string paths for the client's public and private keys; does
 %% one-time start for various encryption requirements and then registers the
-%% node with the rsa_server. Two anonymous functions are returned in a tuple: 
-%% the first takes in a node, process and term and securely delivers the term
-%% to the given process on the given node. The second lists the nodes that are
-%% available to message.
+%% node with the rsa_server. Should return the atom ok if everything is
+%% successfully setup.
 setup(PubKeyPath, PrivKeyPath) ->
     ok = application:start(asn1),
     ok = application:start(crypto),
@@ -22,21 +21,24 @@ setup(PubKeyPath, PrivKeyPath) ->
     [PrivKey] = public_key:pem_decode(PrivBin),
     spawn(?MODULE, listener, [PrivKey]),
     rsa_server:register(PubKey),
-    Message = fun(Node, Process, Term) -> 
-        Bin = term_to_binary(Term),
-        Foreign = cached_key_lookup(Node),
-        Envelope = broker_crypto:build_envelope(Foreign, Bin),
-        {seam_listener, Node} ! {message, Process, Envelope} 
-        end,
-    Get_Nodes = fun() ->
-        rsa_server:get_nodes()
-        end,
-    {Message, Get_Nodes}.
+    ok.
 
 %% setup: same as setup/2 but uses default pathnames for the cient's
 %% public and private keys.
 setup()-> setup("id_rsa.pub", "id_rsa").
 
+%% message: given a node, process, and term, securely send the term to the
+%% specified process on the specified term. Non-blocking operation.
+message(Node, Process, Term) -> 
+    Bin = term_to_binary(Term),
+    Foreign = cached_key_lookup(Node),
+    Envelope = broker_crypto:build_envelope(Foreign, Bin),
+    {seam_listener, Node} ! {message, Process, Envelope},
+    ok.
+
+%% get_nodes: returns a list of nodes available to securely message.
+get_nodes() ->
+    rsa_server:get_nodes().
 
 %% listener: spawns a caching db and loops to listen for encrypted messages,
 %% unencrypts any received messages and passes them along to the original
@@ -46,17 +48,18 @@ listener(PrivKey) ->
 	register(seam_listener, self()),
     % initialize key caching db
 	db:start_link(in_mem),
-    % enter loop to listen for encrypted messages
-	listener_loop(PrivKey).
-
-%% listener_loop: tail-recursion loop to listen for encrypted messages, decrypt
-%% them and forwards unencrypted Erlang terms to the main process. Takes in the
-%% client's private key as the only argument to decrypt messages.
-listener_loop(PrivKey) ->
+    % define anonymous function to return encrypted binary as an Erlang term
 	Decrypt = fun(Msg) ->
         Bin = broker_crypto:extract_message(Msg, PrivKey),
         binary_to_term(Bin)
         end,
+    % enter loop to listen for encrypted messages
+	listener_loop(Decrypt).
+
+%% listener_loop: tail-recursive function to listen for encrypted messages,
+%% decrypt them and forward the resulting Erlang terms to the main process.
+%% Takes in a callback to decrypt  the received messages.
+listener_loop(Decrypt) ->
 	% recieve properly formatted message
 	receive
 		{message, Recipient, Contents} ->
@@ -64,7 +67,8 @@ listener_loop(PrivKey) ->
 		_ ->
 			io:format("Bad message recieved!")
 	end,
-	listener_loop(PrivKey).
+    % loop
+	listener_loop(Decrypt).
 
 %% cached_key_lookup: given a node, opaquely return the corresponding key, 
 %% using caching when possible. If a key is not yet cached it is added
