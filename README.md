@@ -25,13 +25,13 @@ Server Interface:
 -----------------
 
 In order to start an RSA Server instance with a persistent database the erlang instance must be started with some additional argumets. It needs to be called like so:
-unix> erl -mnesia dir '"/your/dir/here"'
+~~~~unix> erl -mnesia dir '"/your/dir/here"'~~~~
 
 This will make sure that the Mnesia database that holds the relevant information writes it to the specified directory
 
 To start the key server call:
-    rsa_server:start(). 
+~~~~rsa_server:start().~~~~
 or 
-    rsa_server:start(PubKeyPath, PrivKeyPath). 
+~~~~rsa_server:start(PubKeyPath, PrivKeyPath).~~~~
 Where the paths are strings with the path to each key. start/0 uses default
 values: "./id_rsa.pub" for the public key and "id_rsa" for the private key.
