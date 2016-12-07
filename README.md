@@ -23,4 +23,10 @@ The Get_Nodes function takes no arguments and returns a list of Nodes that have 
 
 Server Interface:
 -----------------
+
+In order to start an RSA Server instance with a persistent database the erlang instance must be started with some additional argumets. It needs to be called like so:
+unix> erl -mnesia dir '"/your/dir/here"'
+
+This will make sure that the Mnesia database that holds the relevant information writes it to the specified directory
+
 {Aubrey gets to decide this}
