@@ -29,4 +29,9 @@ unix> erl -mnesia dir '"/your/dir/here"'
 
 This will make sure that the Mnesia database that holds the relevant information writes it to the specified directory
 
-{Aubrey gets to decide this}
+To start the key server call:
+    rsa_server:start(). 
+or 
+    rsa_server:start(PubKeyPath, PrivKeyPath). 
+Where the paths are strings with the path to each key. start/0 uses default
+values: "./id_rsa.pub" for the public key and "id_rsa" for the private key.
