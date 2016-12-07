@@ -6,7 +6,7 @@
 -module(rsa_server).
 
 % Public interface functions
--export([start/0, stop/0, register/1, get_key/2, 
+-export([start/0, start/2, stop/0, register/1, get_key/2, 
          get_nodes/1, get_server_key/0]).
 
 -behaviour(gen_server).
@@ -21,8 +21,12 @@
 %% ~~~~~~~~~~~~~~~~~~~~~~~~
 
 % Start the key server
+% Either pass in paths to the keys or reads in ssh-style keys from the current 
+% directory named "id_rsa.pub" and "id_rsa" by default
+start(PubKeyPath, PrivKeyPath) ->
+    gen_server:start({global, ?SERVER}, ?MODULE, [PubKeyPath, PrivKeyPath], []).
 start() ->
-    gen_server:start({global, ?SERVER}, ?MODULE, [], []).
+    gen_server:start({global, ?SERVER}, ?MODULE, ["id_rsa.pub", "id_rsa"], []).
 
 % Stop the key server
 stop() -> 
@@ -59,14 +63,12 @@ get_nodes(PrivKey) ->
 %% ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 % Initialize the key server
-% Reads in ssh-style keys from the current directory named "id_rsa.pub" and
-% "id_rsa"
-init(_) -> 
+init([PubKeyPath, PrivKeyPath]) -> 
     ok = application:start(asn1),
     ok = application:start(crypto),
     ok = application:start(public_key),
-    {ok, PubBin} = file:read_file("id_rsa.pub"),
-    {ok, PrivBin} = file:read_file("id_rsa"),
+    {ok, PubBin} = file:read_file(PubKeyPath),
+    {ok, PrivBin} = file:read_file(PrivKeyPath),
     [{PubKey, _}] = public_key:ssh_decode(PubBin, public_key),
     [PrivKeyEntry] = public_key:pem_decode(PrivBin),
     PrivKey = public_key:pem_entry_decode(PrivKeyEntry),
