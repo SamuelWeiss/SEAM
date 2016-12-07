@@ -1,10 +1,10 @@
-% broker_crypto.erl
+% key_crypto.erl
 % Aubrey Anderson
 % 5 December 2015
 %
 % This module provides public key crypto methods to 
 % encrpyt a message using RSA and AES.
--module(broker_crypto).
+-module(key_crypto).
 -export([build_envelope/2, extract_message/2]).
 
 % Build an encrpyted message.

@@ -31,11 +31,11 @@ This will make sure that the Mnesia database that holds the relevant information
 
 To start the key server call:
 
-    rsa_server:start().
+    key_server:start().
 
 or
  
-    rsa_server:start(PubKeyPath, PrivKeyPath).
+    key_server:start(PubKeyPath, PrivKeyPath).
 
 Where the paths are strings with the path to each key. start/0 uses default
 values: "./id\_rsa.pub" for the public key and "id\_rsa" for the private key.

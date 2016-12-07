@@ -1,15 +1,20 @@
-% db.erl
+% key_db.erl
 % Sam Weiss
 % 7 December 2016
 %
 % This module implements a simplified interface for node/key storage
--module(db).
+-module(key_db).
 
 % public interface functions 
--export([start_link/0, start_link/1, insert/1, get_key/1, get_nodes/0]).
+-export([start_link/0, start_link/1, stop/0,
+         insert/1, get_key/1, get_nodes/0]).
+
+-behaviour(gen_server).
+-export([init/1, handle_call/3, handle_cast/2,
+         code_change/3, terminate/2, handle_info/2]).
 
 % This file contains the schema that will be used for the Mnesia database
--include("db_schema.hrl").
+-include("key_db_schema.hrl").
 
 %% ~~~~~~~~~~~~~~~~~~~~~~~~
 %% API Function Definitions
@@ -30,7 +35,7 @@ start_link(mnesia) ->
 
 % stop the database, for in memory databses this resets all data
 stop() -> 
-	gen_server:cast({global, ?SERVER}, stop).
+	gen_server:cast({global, ?MODULE}, stop).
 
 %% ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 %% External Function Definitions
