@@ -2,7 +2,7 @@
 %%% Assumes that client is aware of the key_server in some way. 
 
 -module(key_client).
--export([setup/0, setup/2, message/3, get_nodes/0, listener/1]).
+-export([setup/0, setup/2, message/3, listener/1]).
 
 
 %% setup: takes in string paths for the client's public and private keys; does
@@ -10,16 +10,17 @@
 %% node with the key_server. Should return the atom ok if everything is
 %% successfully setup.
 setup(PubKeyPath, PrivKeyPath) ->
-    ok = application:start(asn1),
-    ok = application:start(crypto),
-    ok = application:start(public_key),
+    application:start(asn1),
+    application:start(crypto),
+    application:start(public_key),
     {ok, PubBin} = file:read_file(PubKeyPath),
     {ok, PrivBin} = file:read_file(PrivKeyPath),
     [PubKey] = public_key:ssh_decode(PubBin, public_key),
     [PrivKey] = public_key:pem_decode(PrivBin),
     spawn(?MODULE, listener, [PrivKey]),
     key_server:register(PubKey),
-    ok.
+    Get_Nodes = fun() -> key_server:get_nodes(PrivKey) end,
+    {ok, Get_Nodes}.
 
 %% setup: same as setup/2 but uses default pathnames for the cient's
 %% public and private keys.
@@ -35,8 +36,8 @@ message(Node, Process, Term) ->
     ok.
 
 %% get_nodes: returns a list of nodes available to securely message.
-get_nodes() ->
-    key_server:get_nodes().
+%get_nodes() ->
+%    key_server:get_nodes().
 
 %% listener: spawns a caching key_db and loops to listen for encrypted messages,
 %% unencrypts any received messages and passes them along to the original
