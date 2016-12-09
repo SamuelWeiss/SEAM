@@ -10,9 +10,9 @@ Client Interface:
 Our client works by calling a single setup function that returns a single anonymous `get_nodes` function.
 
 The setup function takes the optional arguments of PubKey, PrivKey and defaults to using ssh keys in the current directory. It is expected to return:
-`{ok, , Get\_Nodes}`
+`{ok, GetNodes, Message}`
 
-Once the setup function is called, Message and Get\_Nodes can be invoked.
+Once the setup function is called Get\_Nodes, Message can be invoked.
 
 The Message function takes 3 arguments:
   - Node: The global name of the node that the message should be sent to
