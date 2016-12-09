@@ -7,19 +7,20 @@ The purpose of this project is to enable easy and secure messaging between remot
 Client Interface:
 -----------------
 
-Our client works by calling a single setup function that return three anonymous function.
+Our client works by calling a single setup function that returns a single anonymous `get_nodes` function.
 
-The setup function takes no arguments and returns the following tuple of functions:
-{Message, Upload, Get\_Nodes}
+The setup function takes the optional arguments of PubKey, PrivKey and defaults to using ssh keys in the current directory. It is expected to return:
+`{ok, , Get\_Nodes}`
+
+Once the setup function is called, Message and Get\_Nodes can be invoked.
 
 The Message function takes 3 arguments:
   - Node: The global name of the node that the message should be sent to
   - Process: the registered name or PID of a process on the remote node the message is intended for
   - Term: the erlang term to be sent
   
-The Upload function takes no arguments and simply uploads a key to the rsa key server
 
-The Get\_Nodes function takes no arguments and returns a list of Nodes that have keys in teh key server.
+The Get\_Nodes function takes no arguments and returns a list of Nodes with keys uploaded to the key server.
 
 Server Interface:
 -----------------
