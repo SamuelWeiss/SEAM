@@ -150,7 +150,7 @@ mnesia_get_key(Node) ->
         Key = #keypair{node = Node, key = '$1'},
         mnesia:select(keypair, [{Key, [], ['$1']}])
     end,
-    {atomic, Data} = mnesia:transaction(F),
+    {atomic, [Data]} = mnesia:transaction(F),
     Data.
 
 mnesia_get_nodes() ->
