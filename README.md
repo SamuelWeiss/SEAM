@@ -40,3 +40,25 @@ or
 
 Where the paths are strings with the path to each key. start/0 uses default
 values: "./id\_rsa.pub" for the public key and "id\_rsa" for the private key.
+
+File Overview:
+--------------
+
+key\_server.erl
+
+* Provides a gen\_server to store the public keys of nodes.
+* Provides functions to easily interface with the server.
+* Encryption is handled internally.
+
+key\_client.erl
+
+* Provides a function to send encrypted messages to other nodes also registered with the key server.
+* Provides a callback function for encrypted messages received other nodes.
+
+key\_crypto.erl
+
+* Provides functions to encrypt and decrypt a message using a combination of RSA and AES encryption.
+
+key\_db.erl
+
+* Provides functions to store and retrieve keys from a mnesia database.
