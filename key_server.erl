@@ -1,9 +1,9 @@
-% rsa_server.erl
+% key_server.erl
 % Aubrey Anderson
 % 5 December 2016
 %
 % This module provides a public key distribution gen_server.
--module(rsa_server).
+-module(key_server).
 
 % Public interface functions
 -export([start/0, start/2, stop/0, register/1, get_key/2, 
@@ -96,7 +96,7 @@ handle_cast(stop, State) ->
 handle_call({get_key, Node}, From, State) ->
     Args = [get_key, Node, From],
     % The reply is handled in get_encrypt_send
-    spawn(rsa_server, get_encrypt_send, Args),
+    spawn(?MODULE, get_encrypt_send, Args),
     {noreply, State};
 
 % Respond with the key server's public key
@@ -108,7 +108,7 @@ handle_call(get_server_key, _, State) ->
 handle_call(get_nodes, From, State) ->
     Args = [get_nodes, {}, From],
     % The reply is handled in get_encrypt_send
-    spawn(rsa_server, get_encrypt_send, Args),
+    spawn(?MODULE, get_encrypt_send, Args),
     {noreply, State}.
 
 % This server does not handle info
