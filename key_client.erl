@@ -1,14 +1,22 @@
-%%% key_client.erl: client module for secure messaging between Erlang nodes.
-%%% Assumes that client is aware of the key_server in some way. 
+%%% key_client.erl
+%%% Russell Parker
+%%% 12/9/16
+%%% Description: client module for secure messaging between Erlang nodes.
+%%%   Assumes that client is connected of the key_server in some way
+%%%   Hint: use net_adm:ping(KEY_SERVER)
 
 -module(key_client).
--export([setup/0, setup/2, message/4, listener/1]).
+-export([setup/0, setup/2]).
+
+% private functions
+-export([message/4, listener/1]).
 
 
 %% setup: takes in string paths for the client's public and private keys; does
 %% one-time start for various encryption requirements and then registers the
-%% node with the key_server. Should return the atom ok if everything is
-%% successfully setup.
+%% node with the key_server. Returns a tuple {ok, List, Msg} where List is a
+%% function that lists all nodes currently registered on the key server and
+%% Msg is a secure messaging function.
 setup(PubKeyPath, PrivKeyPath) ->
     application:start(asn1),
     application:start(crypto),
@@ -28,7 +36,7 @@ setup(PubKeyPath, PrivKeyPath) ->
 
 %% setup: same as setup/2 but uses default pathnames for the cient's
 %% public and private keys.
-setup()-> setup("id_rsa.pub", "id_rsa").
+setup() -> setup("id_rsa.pub", "id_rsa").
 
 %% message: given a node, process, and term, securely send the term to the
 %% specified process on the specified term. Non-blocking operation.
@@ -38,10 +46,6 @@ message(Priv, Node, Process, Term) ->
     Envelope = key_crypto:build_envelope(Foreign, Bin),
     {seam_listener, Node} ! {message, Process, Envelope},
     ok.
-
-%% get_nodes: returns a list of nodes available to securely message.
-%get_nodes() ->
-%    key_server:get_nodes().
 
 %% listener: spawns a caching key_db and loops to listen for encrypted messages,
 %% unencrypts any received messages and passes them along to the original
