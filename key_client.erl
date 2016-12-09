@@ -2,7 +2,7 @@
 %%% Assumes that client is aware of the key_server in some way. 
 
 -module(key_client).
--export([setup/0, setup/2, message/3, listener/1]).
+-export([setup/0, setup/2, message/4, listener/1]).
 
 
 %% setup: takes in string paths for the client's public and private keys; does
@@ -21,7 +21,10 @@ setup(PubKeyPath, PrivKeyPath) ->
     spawn(?MODULE, listener, [PrivKey]),
     key_server:register(PubKey),
     Get_Nodes = fun() -> key_server:get_nodes(PrivKey) end,
-    {ok, Get_Nodes}.
+    Message = fun(Node, Process, Term) -> 
+                      message(PrivKey, Node, Process, Term)
+              end,
+    {ok, Get_Nodes, Message}.
 
 %% setup: same as setup/2 but uses default pathnames for the cient's
 %% public and private keys.
@@ -29,9 +32,9 @@ setup()-> setup("id_rsa.pub", "id_rsa").
 
 %% message: given a node, process, and term, securely send the term to the
 %% specified process on the specified term. Non-blocking operation.
-message(Node, Process, Term) -> 
+message(Priv, Node, Process, Term) -> 
     Bin = term_to_binary(Term),
-    Foreign = cached_key_lookup(Node),
+    Foreign = cached_key_lookup(Node, Priv),
     Envelope = key_crypto:build_envelope(Foreign, Bin),
     {seam_listener, Node} ! {message, Process, Envelope},
     ok.
@@ -73,11 +76,11 @@ listener_loop(Decrypt) ->
 %% cached_key_lookup: given a node, opaquely return the corresponding key, 
 %% using caching when possible. If a key is not yet cached it is added
 %% to the cache when retrieved from the key_server.
-cached_key_lookup(Node) ->
+cached_key_lookup(Node, Priv) ->
     case key_db:get_key(Node) of 
         % key is not yet cached
         [] ->
-	        Key = key_server:get_key(Node),
+	        Key = key_server:get_key(Node, Priv),
             key_db:insert({Node, Key}),
             Key;
         % key is already cached
