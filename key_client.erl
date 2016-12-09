@@ -69,8 +69,9 @@ listener(PrivKey) ->
 listener_loop(Decrypt) ->
 	% recieve properly formatted message
 	receive
-		{message, Recipient, Contents} ->
-			Recipient ! Decrypt(Contents);
+		{message, Recipient, {Encrypted_Key, Content}} ->
+            io:format("~p~n", [Content]),
+			Recipient ! Decrypt({Encrypted_Key, Content});
 		_ ->
 			io:format("Bad message recieved!")
 	end,
